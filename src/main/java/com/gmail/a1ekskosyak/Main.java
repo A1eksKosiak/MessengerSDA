@@ -28,14 +28,14 @@ public class Main {
                 case 1:
                     try {
                         createNewUser();
-                        loginMenu();
                     } catch (IOException e) {
                         e.getMessage();
                     }
-                    break;
                 case 2:
                     loginMenu();
                     break;
+                case 0:
+                    return;
                 default:
                     break;
             }
