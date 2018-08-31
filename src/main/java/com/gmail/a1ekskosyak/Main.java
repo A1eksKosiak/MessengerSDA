@@ -1,10 +1,10 @@
 package com.gmail.a1ekskosyak;
 
-import java.io.IOException;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
-import static com.gmail.a1ekskosyak.FileUserService.*;
+import static com.gmail.a1ekskosyak.FileUserService.createNewUser;
+import static com.gmail.a1ekskosyak.FileUserService.loginMenu;
 
 public class Main {
     public static void main(String[] args) {
@@ -26,11 +26,7 @@ public class Main {
             int input = scanner.nextInt();
             switch (input) {
                 case 1:
-                    try {
-                        createNewUser();
-                    } catch (IOException e) {
-                        e.getMessage();
-                    }
+                    createNewUser();
                 case 2:
                     loginMenu();
                     break;

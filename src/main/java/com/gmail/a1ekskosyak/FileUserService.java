@@ -1,113 +1,93 @@
 package com.gmail.a1ekskosyak;
 
-import java.io.*;
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.InputMismatchException;
-import java.util.List;
-import java.util.Scanner;
 
-abstract class FileUserService {
+class FileUserService {
 
-    private static final String PATH_TO_USER_FILE = "C:\\Users\\A1eks\\IdeaProjects\\MessengerSDA\\Files\\Users\\";
-    private static final Scanner SCAN_INPUT_FROM_USER = new Scanner(System.in);
+    private static IOUtils ioUtils = new IOUtils();
 
-    static void createNewUser() throws IOException {
-        System.out.println("Input your name");
-        String newUserName = SCAN_INPUT_FROM_USER.next();
-        System.out.println("Input your email");
-        String newUserEmail = SCAN_INPUT_FROM_USER.next();
-        if (userExists(newUserEmail)) {
-            System.out.println("User with email " + newUserEmail + " already exists in the system.\n Try login");
+
+    public FileUserService(IOUtils ioUtils) {
+        this.ioUtils = ioUtils;
+    }
+
+    static void createNewUser() {
+        ioUtils.writeMessage("Input your email");
+        String newUserEmail = ioUtils.readNextLine();
+        if (ioUtils.fileExist(newUserEmail)) {
+            ioUtils.writeMessage("User with email " + newUserEmail + " already exists in the system.");
+            ioUtils.writeMessage("Try login");
             return;
         }
-        System.out.println("Input your password");
-        String newUserPassword = SCAN_INPUT_FROM_USER.next();
+        ioUtils.writeMessage("Input your name");
+        String newUserName = ioUtils.readNextLine();
+        ioUtils.writeMessage("Input your password");
+        String newUserPassword = ioUtils.readNextLine();
 
         User newUser = new User(newUserName, newUserEmail, newUserPassword);
 
         // save new user to file
-        BufferedWriter bufferedWriter = new BufferedWriter(
-                new FileWriter(PATH_TO_USER_FILE + newUserEmail + ".txt"));
-        bufferedWriter.write(newUser.toString());
-        bufferedWriter.close();
-        System.out.println("User successfully created.\n Please login.");
-
-    }
-
-    static boolean userExists(String email) {
-        File pathToFile = new File(PATH_TO_USER_FILE + email + ".txt");
-        return pathToFile.exists();
-    }
-
-    static void loginMenu() {
-        System.out.println("Insert your email");
-        String email = SCAN_INPUT_FROM_USER.next();
-        System.out.println("Insert your password");
-        String password = SCAN_INPUT_FROM_USER.next();
-        if (!userExists(email)) {
-            System.out.println("Wrong password or user " + email + " does not exist.");
-            return;
-        }
         try {
-            if (!checkPassword(email, password)) {
-                System.out.println("Wrong password or user " + email + " does not exist.");
-                return;
-            }
+            ioUtils.saveUser(newUser);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("Successfully logged in!");
+        ioUtils.writeMessage("User successfully created.\n Please login.");
+    }
+
+    static void loginMenu() {
+        ioUtils.writeMessage("Insert your email");
+        String email = ioUtils.readNextLine();
+        ioUtils.writeMessage("Insert your password");
+        String password = ioUtils.readNextLine();
+        if (!ioUtils.fileExist(email)) {
+            ioUtils.writeMessage("Wrong password or user " + email + " does not exist.");
+            return;
+        }
+        if (!checkPassword(email, password)) {
+            ioUtils.writeMessage("Wrong password or user " + email + " does not exist.");
+            return;
+        }
+        ioUtils.writeMessage("Successfully logged in!");
         userOptionsMenu(email);
     }
 
     private static void userOptionsMenu(String email) {
-        System.out.println("Choose your next actions:");
-        System.out.println("1 - if you are new user.");
-        System.out.println("9 - delete your user user.");
-        System.out.println("0 - to exit our application.");
+        ioUtils.writeMessage("Choose your next actions:");
+        ioUtils.writeMessage("9 - delete your user user.");
+        ioUtils.writeMessage("0 - to exit our application.");
         try {
-            int input = SCAN_INPUT_FROM_USER.nextInt();
+            int input = Integer.parseInt(ioUtils.readNextLine());
             switch (input) {
                 case 1:
                     break;
                 case 9:
-                    System.out.println("To delete account, please insert confirm with your password.");
-                    String password = SCAN_INPUT_FROM_USER.next();
-                    try {
-                        if (checkPassword(email, password)) {
-                            if (deleteUser(email)) {
-                                System.out.println("Your account " + email + " was deleted.");
-                            } else {
-                                System.out.println("We couldn't delete your account.");
-                            }
+                    ioUtils.writeMessage("To delete account, please insert confirm with your password.");
+                    String password = ioUtils.readNextLine();
+                    if (checkPassword(email, password)) {
+                        if (deleteUser(email)) {
+                            ioUtils.writeMessage("Your account " + email + " was deleted.");
+                        } else {
+                            ioUtils.writeMessage("We couldn't delete your account.");
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
                     }
                     break;
                 default:
                     break;
             }
         } catch (InputMismatchException e) {
-            System.out.println("Incorrect input");
+            ioUtils.writeMessage("Incorrect input");
         }
     }
 
     private static boolean deleteUser(String email) {
-        File pathToFile = new File(PATH_TO_USER_FILE + email + ".txt");
-        return pathToFile.delete();
+        return ioUtils.deleteUser(email);
     }
 
-    private static boolean checkPassword(String email, String password) throws IOException {
-        File pathToFile = new File(PATH_TO_USER_FILE + email + ".txt");
-        BufferedReader bufferedReader = new BufferedReader(new FileReader(pathToFile));
-        List<String> lines = new ArrayList<>();
-        String line;
-        while ((line = bufferedReader.readLine()) != null) {
-            lines.add(line);
-        }
-        bufferedReader.close();
-        return lines.get(2).equals(password);
+    private static boolean checkPassword(String email, String password) {
+        User user = ioUtils.readUser(email);
+        return user.getPassword().equals(password);
     }
 
 }
