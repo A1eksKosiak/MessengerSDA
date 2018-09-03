@@ -51,13 +51,16 @@ class FileUserService {
 
     private static void userOptionsMenu(String email) {
         ioUtils.writeMessage("Choose your next actions:");
-        ioUtils.writeMessage("1 - write a message to other user.");
+        ioUtils.writeMessage("1 - send a message to other user.");
         ioUtils.writeMessage("9 - delete your user user.");
         ioUtils.writeMessage("0 - to exit our application.");
         try {
             int input = Integer.parseInt(ioUtils.readNextLine());
             switch (input) {
                 case 1:
+                    ioUtils.writeMessage("Whom to send?");
+                    String otherUserEmail = ioUtils.readNextLine();
+                    ioUtils.sendMessageToAnotherUser(otherUserEmail);
                     break;
                 case 9:
                     ioUtils.writeMessage("To delete account, please insert confirm with your password.");
@@ -75,14 +78,16 @@ class FileUserService {
             }
         } catch (InputMismatchException e) {
             ioUtils.writeMessage("Incorrect input");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     public static boolean checkPassword(String email, String password) {
-        User user = ioUtils.readUser(email);
         if (!ioUtils.fileExist(email)) {
             return false;
         }
+        User user = ioUtils.readUser(email);
         return user.getPassword().equals(password);
     }
 

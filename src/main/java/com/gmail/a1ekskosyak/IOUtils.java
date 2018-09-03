@@ -23,7 +23,7 @@ public class IOUtils {
     }
 
     public boolean fileExist(String filename) {
-        Path filePath = Paths.get(filename + ".txt");
+        Path filePath = Paths.get(PATH_TO_USER_FILE + filename + ".txt");
         return fileExist(filePath);
     }
 
@@ -60,8 +60,22 @@ public class IOUtils {
         bufferedWriter.close();
     }
 
-    public boolean deleteUser(String email){
+    public boolean deleteUser(String email) {
         File pathToFile = new File(PATH_TO_USER_FILE + email + ".txt");
         return pathToFile.delete();
+    }
+
+    public void sendMessageToAnotherUser(String email) throws IOException {
+        if (!fileExist(email)) {
+            writeMessage("This user does not exist!");
+            return;
+        }
+        BufferedWriter bufferedWriter = new BufferedWriter(
+                new FileWriter(PATH_TO_USER_FILE + email + ".txt", true));
+        writeMessage("Input your message");
+        String message = readNextLine();
+        bufferedWriter.append("\n" + message);
+        bufferedWriter.close();
+
     }
 }
