@@ -11,6 +11,7 @@ import java.util.Scanner;
 public class IOUtils {
 
     private static final String PATH_TO_USER_FILE = "C:\\Users\\A1eks\\IdeaProjects\\MessengerSDA\\Files\\Users\\";
+    private static final String PATH_TO_USER_SIZES_FILE = "C:\\Users\\A1eks\\IdeaProjects\\MessengerSDA\\Files\\Users\\!UserFilesSizes.txt";
 
     Scanner scanner;
 
@@ -58,24 +59,87 @@ public class IOUtils {
                 new FileWriter(PATH_TO_USER_FILE + user.getEmail() + ".txt"));
         bufferedWriter.write(user.toString());
         bufferedWriter.close();
+        addUserToNewMessagesChecker(user.getEmail());
     }
 
     public boolean deleteUser(String email) {
-        File pathToFile = new File(PATH_TO_USER_FILE + email + ".txt");
-        return pathToFile.delete();
+        return new File(PATH_TO_USER_FILE + email + ".txt").delete();
     }
 
-    public void sendMessageToAnotherUser(String email) throws IOException {
-        if (!fileExist(email)) {
+    public void sendMessageToAnotherUser(String fromUser, String toUser) throws IOException {
+        if (!fileExist(toUser)) {
             writeMessage("This user does not exist!");
             return;
         }
         BufferedWriter bufferedWriter = new BufferedWriter(
-                new FileWriter(PATH_TO_USER_FILE + email + ".txt", true));
+                new FileWriter(PATH_TO_USER_FILE + toUser + ".txt", true));
         writeMessage("Input your message");
         String message = readNextLine();
-        bufferedWriter.append("\n" + message);
+        bufferedWriter.append("\n" + fromUser + ": " + message);
         bufferedWriter.close();
+    }
 
+    public void checkNewMessages(String email) throws IOException {
+        if (newMessages(email)) {
+            List<String> lines = Files.readAllLines(Paths.get(PATH_TO_USER_SIZES_FILE));
+            List<String> userLines = Files.readAllLines(Paths.get(PATH_TO_USER_FILE + email + ".txt"));
+            int messagesCount = 0;
+            for (String line : lines) {
+                String[] split = line.split(",");
+                if (split[0].equals(email)) {
+                    messagesCount = userLines.size() - Integer.parseInt(split[1]);
+                    break;
+                }
+            }
+            writeMessage("You have " + messagesCount + " new messages:");
+            for (int i = messagesCount; i > 0; i--) {
+                writeMessage(userLines.get(userLines.size() - messagesCount));
+                messagesCount--;
+            }
+        }
+        updateNewMessagesCount(email);
+    }
+
+    public boolean newMessages(String email) throws IOException {
+        List<String> lines = Files.readAllLines(Paths.get(PATH_TO_USER_SIZES_FILE));
+        List<String> userLines = Files.readAllLines(Paths.get(PATH_TO_USER_FILE + email + ".txt"));
+        for (String line : lines) {
+            String[] split = line.split(",");
+            if (split[0].equals(email)) {
+                if (Integer.parseInt(split[1]) != userLines.size()) {
+                    return true;
+                }
+                return false;
+            }
+        }
+        return false;
+    }
+
+    public void addUserToNewMessagesChecker(String email) throws IOException {
+        List<String> userLines = Files.readAllLines(Paths.get(PATH_TO_USER_FILE + email + ".txt"));
+        BufferedWriter bufferedWriter = new BufferedWriter(
+                new FileWriter(PATH_TO_USER_SIZES_FILE, true));
+        bufferedWriter.append("\n" + email + "," + userLines.size());
+        bufferedWriter.close();
+    }
+
+    private void updateNewMessagesCount(String email) throws IOException {
+        List<String> lines = Files.readAllLines(Paths.get(PATH_TO_USER_SIZES_FILE));
+        List<String> userLines = Files.readAllLines(Paths.get(PATH_TO_USER_FILE + email + ".txt"));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(PATH_TO_USER_SIZES_FILE));
+        for (String line : lines) {
+            String[] split = line.split(",");
+            if (split[0].equals(email)) {
+                split[1] = String.valueOf(userLines.size());
+                line = "";
+                for (String element : split) {
+                    line += element + ",";
+                }
+            }
+            if (!(line.equals("") || line.equals(null))) {
+                bufferedWriter.write(line + "\n");
+            }
+        }
+        bufferedWriter.close();
     }
 }

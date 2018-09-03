@@ -50,6 +50,15 @@ class FileUserService {
     }
 
     private static void userOptionsMenu(String email) {
+        // start Thread to see any new emails
+        Thread thread = new Thread(() -> {
+            try {
+                ioUtils.checkNewMessages(email);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
         ioUtils.writeMessage("Choose your next actions:");
         ioUtils.writeMessage("1 - send a message to other user.");
         ioUtils.writeMessage("9 - delete your user user.");
@@ -59,8 +68,8 @@ class FileUserService {
             switch (input) {
                 case 1:
                     ioUtils.writeMessage("Whom to send?");
-                    String otherUserEmail = ioUtils.readNextLine();
-                    ioUtils.sendMessageToAnotherUser(otherUserEmail);
+                    ioUtils.sendMessageToAnotherUser(email, ioUtils.readNextLine());
+                    userOptionsMenu(email);
                     break;
                 case 9:
                     ioUtils.writeMessage("To delete account, please insert confirm with your password.");
@@ -73,7 +82,10 @@ class FileUserService {
                         }
                     }
                     break;
+                case 0:
+                    return;
                 default:
+                    userOptionsMenu(email);
                     break;
             }
         } catch (InputMismatchException e) {
