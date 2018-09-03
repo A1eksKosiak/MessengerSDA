@@ -41,10 +41,6 @@ class FileUserService {
         String email = ioUtils.readNextLine();
         ioUtils.writeMessage("Insert your password");
         String password = ioUtils.readNextLine();
-        if (!ioUtils.fileExist(email)) {
-            ioUtils.writeMessage("Wrong password or user " + email + " does not exist.");
-            return;
-        }
         if (!checkPassword(email, password)) {
             ioUtils.writeMessage("Wrong password or user " + email + " does not exist.");
             return;
@@ -55,6 +51,7 @@ class FileUserService {
 
     private static void userOptionsMenu(String email) {
         ioUtils.writeMessage("Choose your next actions:");
+        ioUtils.writeMessage("1 - write a message to other user.");
         ioUtils.writeMessage("9 - delete your user user.");
         ioUtils.writeMessage("0 - to exit our application.");
         try {
@@ -66,7 +63,7 @@ class FileUserService {
                     ioUtils.writeMessage("To delete account, please insert confirm with your password.");
                     String password = ioUtils.readNextLine();
                     if (checkPassword(email, password)) {
-                        if (deleteUser(email)) {
+                        if (ioUtils.deleteUser(email)) {
                             ioUtils.writeMessage("Your account " + email + " was deleted.");
                         } else {
                             ioUtils.writeMessage("We couldn't delete your account.");
@@ -81,12 +78,11 @@ class FileUserService {
         }
     }
 
-    private static boolean deleteUser(String email) {
-        return ioUtils.deleteUser(email);
-    }
-
-    private static boolean checkPassword(String email, String password) {
+    public static boolean checkPassword(String email, String password) {
         User user = ioUtils.readUser(email);
+        if (!ioUtils.fileExist(email)) {
+            return false;
+        }
         return user.getPassword().equals(password);
     }
 

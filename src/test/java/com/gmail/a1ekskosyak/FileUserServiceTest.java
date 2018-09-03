@@ -7,6 +7,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
 
+import static com.gmail.a1ekskosyak.FileUserService.checkPassword;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -44,7 +46,6 @@ public class FileUserServiceTest {
         when(ioUtils.readNextLine()).thenReturn("userEmail", "userName", "userPassword");
         when(ioUtils.fileExist(anyString())).thenReturn(false);
 
-
         // when
         fileUserService.createNewUser();
 
@@ -61,7 +62,46 @@ public class FileUserServiceTest {
             e.printStackTrace();
         }
         verify(ioUtils).writeMessage(eq("User successfully created.\n Please login."));
-
     }
 
+    @Test
+    public void loginMenu_Returns_IfUserDoesNotExist() {
+        // given
+
+        // when
+        when(ioUtils.readNextLine()).thenReturn("userEmail", "userPassword");
+        when(ioUtils.fileExist(anyString())).thenReturn(false);
+        fileUserService.loginMenu();
+
+        //then
+        verify(ioUtils).writeMessage(eq("Insert your email"));
+        verify(ioUtils).writeMessage(eq("Insert your password"));
+        verify(ioUtils).writeMessage(eq("Wrong password or user userEmail does not exist."));
+    }
+
+    @Test
+    public void checkPassword_ReturnsFalse_IfUserDoesNotExist() {
+        // given
+
+        // when
+        when(ioUtils.readUser("userEmail")).thenReturn(null);
+        boolean checkPassword = checkPassword("userEmail", "userPassword");
+
+        // then
+        assertThat(checkPassword).isFalse();
+    }
+
+    @Test
+    public void checkPassword_ReturnsFalse_IfUserExistsAndPasswordIncorrect() {
+        // given
+
+        // when
+
+        // then
+    }
+
+    @Test
+    public void checkPassword_ReturnsTrue_IfUserExistsAndPasswordCorrect() {
+
+    }
 }
