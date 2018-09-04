@@ -50,15 +50,18 @@ class FileUserService {
     }
 
     private static void userOptionsMenu(String email) {
-        // start Thread to see any new emails
         Thread thread = new Thread(() -> {
             try {
+                Thread.sleep(1000);
                 ioUtils.checkNewMessages(email);
             } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         });
         thread.start();
+        // start Thread to see any new emails
         ioUtils.writeMessage("Choose your next actions:");
         ioUtils.writeMessage("1 - send a message to other user.");
         ioUtils.writeMessage("9 - delete your user user.");
