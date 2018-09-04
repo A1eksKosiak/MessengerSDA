@@ -106,7 +106,7 @@ public class IOUtils {
         for (String line : lines) {
             String[] split = line.split(",");
             if (split[0].equals(email)) {
-                if (Integer.parseInt(split[1]) != userLines.size()) {
+                if (Integer.parseInt(split[1]) != userLines.size() && userLines.size() > 4) {
                     return true;
                 }
                 return false;
