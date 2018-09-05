@@ -85,7 +85,7 @@ class FileUserService {
                     break;
                 case 2:
                     ioUtils.writeMessage("Select group chat from below list:");
-                    ioUtils.writeMessage("Main group");
+                    ioUtils.writeMessage("Type \"main\" to login to Main group");
                     String selectedGroup = ioUtils.readNextLine();
                     writeInGroupChat(selectedGroup, email);
                     break;
