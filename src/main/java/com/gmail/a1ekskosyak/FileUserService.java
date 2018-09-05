@@ -52,18 +52,22 @@ class FileUserService {
     private static void userOptionsMenu(String email) {
         Thread thread = new Thread(() -> {
             try {
-                Thread.sleep(1000);
-                ioUtils.checkNewMessages(email);
+                while (true) {
+                    Thread.sleep(1000);
+                    ioUtils.checkNewMessages(email);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         });
-        thread.start();
         // start Thread to see any new emails
+        thread.setDaemon(true);
+        thread.start();
         ioUtils.writeMessage("Choose your next actions:");
-        ioUtils.writeMessage("1 - send a message to other user.");
+        ioUtils.writeMessage("1 - send private message to other user.");
+        ioUtils.writeMessage("2 - open group chat");
         ioUtils.writeMessage("9 - delete your user user.");
         ioUtils.writeMessage("0 - to exit our application.");
         try {
@@ -71,8 +75,19 @@ class FileUserService {
             switch (input) {
                 case 1:
                     ioUtils.writeMessage("Whom to send?");
-                    ioUtils.sendMessageToAnotherUser(email, ioUtils.readNextLine());
-                    userOptionsMenu(email);
+                    String whomToSend = ioUtils.readNextLine();
+                    if (!ioUtils.fileExist(whomToSend)) {
+                        ioUtils.writeMessage("This user does not exist!");
+                    } else {
+                        ioUtils.sendMessageToAnotherUser(email, whomToSend);
+                        userOptionsMenu(email);
+                    }
+                    break;
+                case 2:
+                    ioUtils.writeMessage("Select group chat from below list:");
+                    ioUtils.writeMessage("Main group");
+                    String selectedGroup = ioUtils.readNextLine();
+                    writeInGroupChat(selectedGroup, email);
                     break;
                 case 9:
                     ioUtils.writeMessage("To delete account, please insert confirm with your password.");
@@ -104,6 +119,51 @@ class FileUserService {
         }
         User user = ioUtils.readUser(email);
         return user.getPassword().equals(password);
+    }
+
+    private static void writeInGroupChat(String chatName, String userEmail) {
+        if (chatName.toLowerCase().equals("main") || chatName.toLowerCase().equals("main group")) {
+            chatName = "Main";
+        }
+        if (!ioUtils.fileExist(chatName, ".txt")) {
+            ioUtils.writeMessage("Sorry, this chat currently doesn't exist");
+            return;
+        }
+        groupChatMenu(chatName, userEmail);
+    }
+
+    private static void groupChatMenu(String chatName, String userEmail) {
+        if (!ioUtils.userExistsInSettingsFile(chatName, userEmail)) {
+            try {
+                ioUtils.createUserInSettingsFile(chatName, userEmail);
+            } catch (UpdatingGroupChatException e) {
+                e.printStackTrace();
+                ioUtils.writeMessage("Something went wrong, please call IT");
+                return;
+            }
+        }
+        ioUtils.writeMessage("Welcome to " + chatName + " chat!");
+        ioUtils.writeMessage("Here you can write communicate with other people");
+        ioUtils.writeMessage("To logout insert \"exit\"");
+        Thread thread = new Thread(() -> {
+            while (true) {
+                if (ioUtils.checkForNewMessagesInGroupChat(userEmail, chatName)) {
+                    ioUtils.readLastMessagesFromGroupChat(userEmail, chatName);
+                    ioUtils.updateCountOfReadMessagesInGroupChat(userEmail, chatName);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+        thread.setDaemon(true);
+        thread.start();
+        String message;
+        while (!(message = ioUtils.readNextLine()).equals("exit")) {
+            ioUtils.addMessageToGroupChat(chatName, userEmail, message);
+        }
     }
 
 }

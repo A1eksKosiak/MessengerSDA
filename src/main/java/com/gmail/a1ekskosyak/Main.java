@@ -11,6 +11,7 @@ public class Main {
 
         System.out.println("Welcome to our Messenger!");
         printGreeting();
+
     }
 
     static void printGreeting() {

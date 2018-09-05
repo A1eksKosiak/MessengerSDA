@@ -1,18 +1,21 @@
 package com.gmail.a1ekskosyak;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class User {
     private String email;
     private String name;
     private String password;
+    private Clock clock;
     private LocalDateTime timestamp;
 
     public User(String name, String email, String password) {
         this.name = name;
         this.email = email;
         this.password = password;
-//        timestamp = LocalDateTime.now();
+        this.clock = Clock.systemUTC();
+        timestamp = LocalDateTime.now(clock);
     }
 
     public String getEmail() {
