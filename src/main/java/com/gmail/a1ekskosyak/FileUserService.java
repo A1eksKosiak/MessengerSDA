@@ -68,7 +68,7 @@ class FileUserService {
         ioUtils.writeMessage("Choose your next actions:");
         ioUtils.writeMessage("1 - send private message to other user.");
         ioUtils.writeMessage("2 - open group chat");
-        ioUtils.writeMessage("9 - delete your user user.");
+        ioUtils.writeMessage("9 - delete your user.");
         ioUtils.writeMessage("0 - to exit our application.");
         try {
             int input = Integer.parseInt(ioUtils.readNextLine());
@@ -76,12 +76,14 @@ class FileUserService {
                 case 1:
                     ioUtils.writeMessage("Whom to send?");
                     String whomToSend = ioUtils.readNextLine();
-                    if (!ioUtils.fileExist(whomToSend)) {
-                        ioUtils.writeMessage("This user does not exist!");
+                    if (ioUtils.fileExist(whomToSend)) {
+                        ioUtils.writeMessage("Write your message:");
+                        String message = ioUtils.readNextLine();
+                        sendPrivateMessage(email, whomToSend, message);
                     } else {
-                        ioUtils.sendMessageToAnotherUser(email, whomToSend);
-                        userOptionsMenu(email);
+                        ioUtils.writeMessage("This user does not exist!");
                     }
+                    userOptionsMenu(email);
                     break;
                 case 2:
                     ioUtils.writeMessage("Select group chat from below list:");
@@ -113,6 +115,15 @@ class FileUserService {
         }
     }
 
+    private static void sendPrivateMessage(String whoSendsMessage, String whomToSend, String message) {
+        if (ioUtils.fileExist(whomToSend)) {
+            ioUtils.sendMessageToAnotherUser(whoSendsMessage, whomToSend, message);
+            ioUtils.writeMessage("Message sent!");
+        } else {
+            ioUtils.writeMessage("This user does not exist!");
+        }
+    }
+
     public static boolean checkPassword(String email, String password) {
         if (!ioUtils.fileExist(email)) {
             return false;
@@ -133,6 +144,13 @@ class FileUserService {
     }
 
     private static void groupChatMenu(String chatName, String userEmail) {
+        Thread thread = new Thread(() -> {
+            while (true) {
+                checkingMessagesInGroupChatThread(userEmail, chatName);
+            }
+        });
+        thread.setDaemon(true);
+        thread.start();
         if (!ioUtils.userExistsInSettingsFile(chatName, userEmail)) {
             try {
                 ioUtils.createUserInSettingsFile(chatName, userEmail);
@@ -143,27 +161,43 @@ class FileUserService {
             }
         }
         ioUtils.writeMessage("Welcome to " + chatName + " chat!");
-        ioUtils.writeMessage("Here you can write communicate with other people");
+        ioUtils.writeMessage("Here you can communicate with other people");
+        ioUtils.writeMessage("For help insert \"!help\"");
         ioUtils.writeMessage("To logout insert \"exit\"");
-        Thread thread = new Thread(() -> {
-            while (true) {
-                if (ioUtils.checkForNewMessagesInGroupChat(userEmail, chatName)) {
-                    ioUtils.readLastMessagesFromGroupChat(userEmail, chatName);
-                    ioUtils.updateCountOfReadMessagesInGroupChat(userEmail, chatName);
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-        thread.setDaemon(true);
-        thread.start();
         String message;
         while (!(message = ioUtils.readNextLine()).equals("exit")) {
-            ioUtils.addMessageToGroupChat(chatName, userEmail, message);
+            if (message.equals("!help")) {
+                printPossibleCommandsForGroupChat();
+            }
+            String[] splitMessage = message.split(" ");
+            if (splitMessage[0].equals("private:")) {
+                if (ioUtils.fileExist(splitMessage[1])) {
+                    StringBuilder stringBuilder = new StringBuilder();
+                    for (String element : splitMessage) {
+                        stringBuilder.append(element + " ");
+                    }
+                    sendPrivateMessage(userEmail, splitMessage[1], stringBuilder.toString());
+                } else {
+                    ioUtils.writeMessage("This user does not exist!");
+                }
+            } else {
+                ioUtils.addMessageToGroupChat(chatName, userEmail, message);
+            }
         }
     }
 
+    private static void printPossibleCommandsForGroupChat() {
+        ioUtils.writeMessage("For help insert \"!help\"");
+        ioUtils.writeMessage("To send a private message - type \"private: email\" and the message");
+        ioUtils.writeMessage("To logout insert \"exit\"");
+    }
+
+    public static void checkingMessagesInGroupChatThread(String userEmail, String chatName) {
+        while (true) {
+            if (ioUtils.checkForNewMessagesInGroupChat(userEmail, chatName)) {
+                ioUtils.readLastMessagesFromGroupChat(userEmail, chatName);
+                ioUtils.updateCountOfReadMessagesInGroupChat(userEmail, chatName);
+            }
+        }
+    }
 }
