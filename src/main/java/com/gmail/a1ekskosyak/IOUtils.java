@@ -15,7 +15,7 @@ import java.util.Scanner;
 public class IOUtils {
     private static final String PATH_TO_USER_FILE = "Files\\Users\\";
     private static final String PATH_TO_GROUP_CHAT = "Files\\GroupChats\\";
-    private static final String PATH_TO_USER_SIZES_FILE = "Files\\Users\\!UserFilesSizes.txt";
+    private static final String PATH_TO_USER_SIZES_FILE = "Files\\Users\\";
 
     Scanner scanner;
 
@@ -28,13 +28,11 @@ public class IOUtils {
     }
 
     public boolean fileExist(String filename) {
-        Path filePath = Paths.get(PATH_TO_USER_FILE + filename + ".txt");
-        return fileExist(filePath);
+        return fileExist(getPathToFile(PATH_TO_USER_FILE + filename));
     }
 
-    public boolean fileExist(String filename, String fileFormat) {
-        Path filePath = Paths.get(PATH_TO_GROUP_CHAT + filename + fileFormat);
-        return fileExist(filePath);
+    private Path getPathToFile(String pathToFile) {
+        return Paths.get(pathToFile);
     }
 
     public void writeMessage(String message) {
@@ -47,29 +45,41 @@ public class IOUtils {
 
     public User readUser(String email) {
         try {
-            List<String> lines = Files.readAllLines(Paths.get(PATH_TO_USER_FILE + email + ".txt"));
+            List<String> lines = readFromFile(PATH_TO_USER_FILE + email + ".txt");
             if (lines.size() < 3) {
-                throw new UserFileIsCorruptedException("File is corrupted, incorrect number of lines.");
+                throw new UserFileIsCorruptedException("File is corrupted.");
             }
-            User user = new User(lines.get(1), lines.get(0), lines.get(2));
+            User user = new User(lines.get(1), lines.get(0), lines.get(2), 2);
             return user;
         } catch (UserFileIsCorruptedException e) {
             e.getMessage();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
         return null;
     }
 
-    public void saveUser(User user) throws IOException {
-        BufferedWriter bufferedWriter = new BufferedWriter(
-                new FileWriter(PATH_TO_USER_FILE + user.getEmail() + ".txt"));
-        bufferedWriter.write(user.toString());
-        bufferedWriter.close();
-        addUserToNewMessagesChecker(user.getEmail());
+    public void saveUser(User user) {
+        writeToFile(PATH_TO_USER_FILE + user.getEmail() + ".txt", user.toString());
     }
 
-    public boolean deleteUser(String email) throws IOException {
+    private void writeToFile(String pathToFile, String value) {
+        try {
+            FileWriter fileWriter = new FileWriter(pathToFile);
+            fileWriter.write(value);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private List<String> readFromFile(String pathToFile) {
+        try {
+            return Files.readAllLines(getPathToFile(pathToFile));
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public boolean deleteUser(String email) {
 //        List<String> lines = Files.readAllLines(Paths.get(PATH_TO_USER_SIZES_FILE));
 //        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(PATH_TO_USER_SIZES_FILE));
 //        for (String line : lines) {
@@ -94,68 +104,87 @@ public class IOUtils {
         }
     }
 
-    public void checkNewMessages(String email) throws IOException {
+    public void checkNewMessages(String email) {
         if (newMessages(email)) {
-            List<String> lines = Files.readAllLines(Paths.get(PATH_TO_USER_SIZES_FILE));
-            List<String> userLines = Files.readAllLines(Paths.get(PATH_TO_USER_FILE + email + ".txt"));
-            int messagesCount = 0;
-            for (String line : lines) {
-                String[] splitLine = line.split(",");
-                if (splitLine[0].equals(email)) {
-                    messagesCount = userLines.size() - Integer.parseInt(splitLine[1]);
-                    break;
+            try {
+                List<String> lines = Files.readAllLines(getPathToFile(PATH_TO_USER_SIZES_FILE + "!UserFilesSizes.txt"));
+                List<String> userLines = null;
+                userLines = Files.readAllLines(getPathToFile(PATH_TO_USER_FILE + email + ".txt"));
+                int messagesCount = 0;
+                for (String line : lines) {
+                    String[] splitLine = line.split(",");
+                    if (splitLine[0].equals(email)) {
+                        messagesCount = userLines.size() - Integer.parseInt(splitLine[1]);
+                        break;
+                    }
                 }
-            }
-            writeMessage("You have " + messagesCount + " new messages:");
-            for (int i = messagesCount; i > 0; i--) {
-                writeMessage(userLines.get(userLines.size() - messagesCount));
-                messagesCount--;
+                writeMessage("You have " + messagesCount + " new messages:");
+                for (int i = messagesCount; i > 0; i--) {
+                    writeMessage(userLines.get(userLines.size() - messagesCount));
+                    messagesCount--;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
         updateNewMessagesCount(email);
     }
 
-    public boolean newMessages(String email) throws IOException {
-        List<String> lines = Files.readAllLines(Paths.get(PATH_TO_USER_SIZES_FILE));
-        List<String> userLines = Files.readAllLines(Paths.get(PATH_TO_USER_FILE + email + ".txt"));
-        for (String line : lines) {
-            String[] split = line.split(",");
-            if (split[0].equals(email)) {
-                if (Integer.parseInt(split[1]) != userLines.size() && userLines.size() > 4) {
-                    return true;
+    public boolean newMessages(String email) {
+        try {
+            List<String> lines = Files.readAllLines(getPathToFile(PATH_TO_USER_SIZES_FILE + "!UserFilesSizes.txt"));
+            List<String> userLines = null;
+            userLines = Files.readAllLines(getPathToFile(PATH_TO_USER_FILE + email + ".txt"));
+            for (String line : lines) {
+                String[] split = line.split(",");
+                if (split[0].equals(email)) {
+                    if (Integer.parseInt(split[1]) != userLines.size() && userLines.size() > 4) {
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return false;
     }
 
-    public void addUserToNewMessagesChecker(String email) throws IOException {
-        List<String> userLines = Files.readAllLines(Paths.get(PATH_TO_USER_FILE + email + ".txt"));
-        BufferedWriter bufferedWriter = new BufferedWriter(
-                new FileWriter(PATH_TO_USER_SIZES_FILE, true));
-        bufferedWriter.append("\n" + email + "," + userLines.size());
-        bufferedWriter.close();
+    public void addUserToNewMessagesChecker(String email) {
+        try {
+            List<String> userLines = Files.readAllLines(getPathToFile(PATH_TO_USER_FILE + email + ".txt"));
+            BufferedWriter bufferedWriter = new BufferedWriter(
+                    new FileWriter(PATH_TO_USER_SIZES_FILE + "!UserFilesSizes.txt", true));
+            bufferedWriter.append("\n" + email + "," + userLines.size());
+            bufferedWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void updateNewMessagesCount(String email) throws IOException {
-        List<String> lines = Files.readAllLines(Paths.get(PATH_TO_USER_SIZES_FILE));
-        List<String> userLines = Files.readAllLines(Paths.get(PATH_TO_USER_FILE + email + ".txt"));
-        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(PATH_TO_USER_SIZES_FILE));
-        for (String line : lines) {
-            String[] splitLine = line.split(",");
-            if (splitLine[0].equals(email)) {
-                splitLine[1] = String.valueOf(userLines.size());
-                line = "";
-                for (String element : splitLine) {
-                    line += element + ",";
+    private void updateNewMessagesCount(String email) {
+        try {
+            List<String> lines = Files.readAllLines(getPathToFile(PATH_TO_USER_SIZES_FILE + "!UserFilesSizes.txt"));
+            List<String> userLines = null;
+            userLines = Files.readAllLines(getPathToFile(PATH_TO_USER_FILE + email + ".txt"));
+            BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(PATH_TO_USER_SIZES_FILE + "!UserFilesSizes.txt"));
+            for (String line : lines) {
+                String[] splitLine = line.split(",");
+                if (splitLine[0].equals(email)) {
+                    splitLine[1] = String.valueOf(userLines.size());
+                    line = "";
+                    for (String element : splitLine) {
+                        line += element + ",";
+                    }
+                }
+                if (!line.equals("")) {
+                    bufferedWriter.write(line + "\n");
                 }
             }
-            if (!line.equals("")) {
-                bufferedWriter.write(line + "\n");
-            }
+            bufferedWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        bufferedWriter.close();
     }
 
     public synchronized void addMessageToGroupChat(String chatName, String userEmail, String message) {
@@ -170,7 +199,7 @@ public class IOUtils {
 
     public void readAllMessagesFromGroupChat(String chatName) {
         try {
-            List<String> lines = Files.readAllLines(Paths.get(PATH_TO_GROUP_CHAT + chatName + ".txt"));
+            List<String> lines = Files.readAllLines(getPathToFile(PATH_TO_GROUP_CHAT + chatName + ".txt"));
             for (int i = 0; i < lines.size(); i++) {
                 writeMessage(lines.get(i));
             }
@@ -181,8 +210,8 @@ public class IOUtils {
 
     public void readLastMessagesFromGroupChat(String userEmail, String chatName) {
         try {
-            List<String> lines = Files.readAllLines(Paths.get(PATH_TO_GROUP_CHAT + chatName + "Settings.txt"));
-            List<String> chatLines = Files.readAllLines(Paths.get(PATH_TO_GROUP_CHAT + chatName + ".txt"));
+            List<String> lines = Files.readAllLines(getPathToFile(PATH_TO_GROUP_CHAT + chatName + "Settings.txt"));
+            List<String> chatLines = Files.readAllLines(getPathToFile(PATH_TO_GROUP_CHAT + chatName + ".txt"));
             for (String line : lines) {
                 String[] splitElement = line.split(",");
                 if (splitElement[0].equals(userEmail)) {
@@ -202,8 +231,8 @@ public class IOUtils {
     public boolean checkForNewMessagesInGroupChat(String userEmail, String chatName) {
         try {
             Thread.sleep(100);
-            List<String> lines = Files.readAllLines(Paths.get(PATH_TO_GROUP_CHAT + chatName + "Settings.txt"));
-            List<String> chatLines = Files.readAllLines(Paths.get(PATH_TO_GROUP_CHAT + chatName + ".txt"));
+            List<String> lines = Files.readAllLines(getPathToFile(PATH_TO_GROUP_CHAT + chatName + "Settings.txt"));
+            List<String> chatLines = Files.readAllLines(getPathToFile(PATH_TO_GROUP_CHAT + chatName + ".txt"));
             for (String line : lines) {
                 String[] splitElement = line.split(",");
                 if (splitElement[0].equals(userEmail)) {
@@ -219,10 +248,10 @@ public class IOUtils {
         return false;
     }
 
-    public void createUserInSettingsFile(String chatName, String userEmail) throws UpdatingGroupChatException {
+    public void createUserInSettingsFile(String chatName, String userEmail) {
         try {
             FileWriter fileWriter = new FileWriter(PATH_TO_GROUP_CHAT + chatName + "Settings.txt", true);
-            List<String> lines = Files.readAllLines(Paths.get(PATH_TO_GROUP_CHAT + chatName + ".txt"));
+            List<String> lines = Files.readAllLines(getPathToFile(PATH_TO_GROUP_CHAT + chatName + ".txt"));
             fileWriter.write(userEmail + "," + lines.size() + "\n");
             fileWriter.close();
         } catch (IOException e) {
@@ -232,12 +261,12 @@ public class IOUtils {
 
     public synchronized void updateCountOfReadMessagesInGroupChat(String userEmail, String chatName) {
         try {
-            List<String> lines = Files.readAllLines(Paths.get(PATH_TO_GROUP_CHAT + chatName + "Settings.txt"));
-            List<String> chatLines = Files.readAllLines(Paths.get(PATH_TO_GROUP_CHAT + chatName + ".txt"));
+            List<String> lines = Files.readAllLines(getPathToFile(PATH_TO_GROUP_CHAT + chatName + "Settings.txt"));
+            List<String> chatLines = Files.readAllLines(getPathToFile(PATH_TO_GROUP_CHAT + chatName + ".txt"));
             FileWriter fileWriter = new FileWriter(PATH_TO_GROUP_CHAT + chatName + "Settings.txt");
             for (String line : lines) {
-                String[] splitElement = line.split(",");
-                if (splitElement[0].equals(userEmail)) {
+                if (line.contains(userEmail)) {
+                    String[] splitElement = line.split(",");
                     splitElement[1] = String.valueOf(chatLines.size());
                     line = splitElement[0] + "," + splitElement[1];
                 }
@@ -251,10 +280,9 @@ public class IOUtils {
 
     public boolean userExistsInSettingsFile(String chatName, String userEmail) {
         try {
-            List<String> lines = Files.readAllLines(Paths.get(PATH_TO_GROUP_CHAT + chatName + "Settings.txt"));
+            List<String> lines = Files.readAllLines(getPathToFile(PATH_TO_GROUP_CHAT + chatName + "Settings.txt"));
             for (String line : lines) {
-                String[] splitElement = line.split(",");
-                if (splitElement[0].equals(userEmail)) {
+                if (line.contains(userEmail)) {
                     return true;
                 }
             }

@@ -1,39 +1,61 @@
 package com.gmail.a1ekskosyak;
 
-import java.io.IOException;
-import java.util.InputMismatchException;
-
 class FileUserService {
 
     private static IOUtils ioUtils = new IOUtils();
-
+    private static int countOfInvalidEmailInputs = 0;
 
     public FileUserService(IOUtils ioUtils) {
         this.ioUtils = ioUtils;
     }
 
-    static void createNewUser() {
-        ioUtils.writeMessage("Input your email");
-        String newUserEmail = ioUtils.readNextLine();
-        if (ioUtils.fileExist(newUserEmail)) {
-            ioUtils.writeMessage("User with email " + newUserEmail + " already exists in the system.");
-            ioUtils.writeMessage("Try login");
+    static void createNewUserMenu() {
+        ioUtils.writeMessage("Insert your email");
+        String email = ioUtils.readNextLine();
+        if (email.equals("exit")) {
             return;
         }
-        ioUtils.writeMessage("Input your name");
+        if (!isValidEmail(email)) {
+            ioUtils.writeMessage("This email is invalid, please insert valid email!");
+            increaseInvalidEmailInputCount();
+            if (numberOfInvalidEmailInputs() >= 3) {
+                ioUtils.writeMessage("===================================");
+                ioUtils.writeMessage("To quit application insert \"exit\"");
+                ioUtils.writeMessage("===================================");
+            }
+            createNewUserMenu();
+        }
+        if (ioUtils.fileExist(email)) {
+            ioUtils.writeMessage("User with email " + email + " already exists in the system.");
+            return;
+        }
+        ioUtils.writeMessage("Insert your name");
         String newUserName = ioUtils.readNextLine();
-        ioUtils.writeMessage("Input your password");
+        ioUtils.writeMessage("Insert your password");
         String newUserPassword = ioUtils.readNextLine();
+        ioUtils.writeMessage("Insert your age");
+        int age = Integer.parseInt(ioUtils.readNextLine());
 
-        User newUser = new User(newUserName, newUserEmail, newUserPassword);
+        User newUser = new User(newUserName, email, newUserPassword, age);
 
         // save new user to file
-        try {
-            ioUtils.saveUser(newUser);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        ioUtils.writeMessage("User successfully created.\n Please login.");
+        ioUtils.saveUser(newUser);
+        ioUtils.writeMessage("User successfully created.\nPlease login.");
+    }
+
+    private static int numberOfInvalidEmailInputs() {
+        return countOfInvalidEmailInputs;
+    }
+
+    private static void increaseInvalidEmailInputCount() {
+        countOfInvalidEmailInputs++;
+    }
+
+    private static boolean isValidEmail(String email) {
+        String ePattern = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$";
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile(ePattern);
+        java.util.regex.Matcher m = p.matcher(email);
+        return m.matches();
     }
 
     static void loginMenu() {
@@ -56,8 +78,6 @@ class FileUserService {
                     Thread.sleep(1000);
                     ioUtils.checkNewMessages(email);
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -70,48 +90,42 @@ class FileUserService {
         ioUtils.writeMessage("2 - open group chat");
         ioUtils.writeMessage("9 - delete your user.");
         ioUtils.writeMessage("0 - to exit our application.");
-        try {
-            int input = Integer.parseInt(ioUtils.readNextLine());
-            switch (input) {
-                case 1:
-                    ioUtils.writeMessage("Whom to send?");
-                    String whomToSend = ioUtils.readNextLine();
-                    if (ioUtils.fileExist(whomToSend)) {
-                        ioUtils.writeMessage("Write your message:");
-                        String message = ioUtils.readNextLine();
-                        sendPrivateMessage(email, whomToSend, message);
+        int input = Integer.parseInt(ioUtils.readNextLine());
+        switch (input) {
+            case 1:
+                ioUtils.writeMessage("Whom to send?");
+                String whomToSend = ioUtils.readNextLine();
+                if (ioUtils.fileExist(whomToSend)) {
+                    ioUtils.writeMessage("Write your message:");
+                    String message = ioUtils.readNextLine();
+                    sendPrivateMessage(email, whomToSend, message);
+                } else {
+                    ioUtils.writeMessage("This user does not exist!");
+                }
+                userOptionsMenu(email);
+                break;
+            case 2:
+                ioUtils.writeMessage("Select group chat from below list:");
+                ioUtils.writeMessage("Type \"main\" to login to Main group");
+                String selectedGroup = ioUtils.readNextLine();
+                writeInGroupChat(selectedGroup, email);
+                break;
+            case 9:
+                ioUtils.writeMessage("To delete account, please insert confirm with your password.");
+                String password = ioUtils.readNextLine();
+                if (checkPassword(email, password)) {
+                    if (ioUtils.deleteUser(email)) {
+                        ioUtils.writeMessage("Your account " + email + " was deleted.");
                     } else {
-                        ioUtils.writeMessage("This user does not exist!");
+                        ioUtils.writeMessage("We couldn't delete your account.");
                     }
-                    userOptionsMenu(email);
-                    break;
-                case 2:
-                    ioUtils.writeMessage("Select group chat from below list:");
-                    ioUtils.writeMessage("Type \"main\" to login to Main group");
-                    String selectedGroup = ioUtils.readNextLine();
-                    writeInGroupChat(selectedGroup, email);
-                    break;
-                case 9:
-                    ioUtils.writeMessage("To delete account, please insert confirm with your password.");
-                    String password = ioUtils.readNextLine();
-                    if (checkPassword(email, password)) {
-                        if (ioUtils.deleteUser(email)) {
-                            ioUtils.writeMessage("Your account " + email + " was deleted.");
-                        } else {
-                            ioUtils.writeMessage("We couldn't delete your account.");
-                        }
-                    }
-                    break;
-                case 0:
-                    return;
-                default:
-                    userOptionsMenu(email);
-                    break;
-            }
-        } catch (InputMismatchException e) {
-            ioUtils.writeMessage("Incorrect input");
-        } catch (IOException e) {
-            e.printStackTrace();
+                }
+                break;
+            case 0:
+                return;
+            default:
+                userOptionsMenu(email);
+                break;
         }
     }
 
@@ -136,7 +150,7 @@ class FileUserService {
         if (chatName.toLowerCase().equals("main") || chatName.toLowerCase().equals("main group")) {
             chatName = "Main";
         }
-        if (!ioUtils.fileExist(chatName, ".txt")) {
+        if (!ioUtils.fileExist(chatName)) {
             ioUtils.writeMessage("Sorry, this chat currently doesn't exist");
             return;
         }
@@ -152,13 +166,7 @@ class FileUserService {
         thread.setDaemon(true);
         thread.start();
         if (!ioUtils.userExistsInSettingsFile(chatName, userEmail)) {
-            try {
-                ioUtils.createUserInSettingsFile(chatName, userEmail);
-            } catch (UpdatingGroupChatException e) {
-                e.printStackTrace();
-                ioUtils.writeMessage("Something went wrong, please call IT");
-                return;
-            }
+            ioUtils.createUserInSettingsFile(chatName, userEmail);
         }
         ioUtils.writeMessage("Welcome to " + chatName + " chat!");
         ioUtils.writeMessage("Here you can communicate with other people");

@@ -1,44 +1,46 @@
 package com.gmail.a1ekskosyak;
 
 import java.util.InputMismatchException;
-import java.util.Scanner;
 
-import static com.gmail.a1ekskosyak.FileUserService.createNewUser;
+import static com.gmail.a1ekskosyak.FileUserService.createNewUserMenu;
 import static com.gmail.a1ekskosyak.FileUserService.loginMenu;
 
 public class Main {
+    private static IOUtils ioUtils = new IOUtils();
+
     public static void main(String[] args) {
 
-        System.out.println("Welcome to our Messenger!");
+
+        ioUtils.writeMessage("Welcome to our Messenger!");
         printGreeting();
 
     }
 
     static void printGreeting() {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Choose your action:");
-        System.out.println("1 - if you are new user");
-        System.out.println("2 - if you already have an account");
-        System.out.println("0 - to exit our application");
+        ioUtils.writeMessage("Choose your action:");
+        ioUtils.writeMessage("Insert \"1\" to create a new account");
+        ioUtils.writeMessage("Insert \"2\" if you already have an account");
+        ioUtils.writeMessage("Insert \"0\" to exit application");
 
         try {
-            int input = scanner.nextInt();
+            int input = Integer.parseInt(ioUtils.readNextLine());
             switch (input) {
                 case 1:
-                    createNewUser();
+                    createNewUserMenu();
                 case 2:
                     loginMenu();
                     break;
                 case 0:
                     return;
                 default:
+
+                    printGreeting();
                     break;
             }
         } catch (InputMismatchException e) {
-            System.out.println("Incorrect input");
+            ioUtils.writeMessage("Incorrect input");
             printGreeting();
         }
-        scanner.close();
     }
 
 

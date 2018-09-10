@@ -5,8 +5,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.IOException;
-
 import static com.gmail.a1ekskosyak.FileUserService.checkPassword;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -33,7 +31,7 @@ public class FileUserServiceTest {
         when(ioUtils.fileExist(anyString())).thenReturn(true);
 
         // when
-        fileUserService.createNewUser();
+        fileUserService.createNewUserMenu();
 
         //then
         verify(ioUtils).writeMessage(eq("Input your email"));
@@ -47,20 +45,16 @@ public class FileUserServiceTest {
         when(ioUtils.fileExist(anyString())).thenReturn(false);
 
         // when
-        fileUserService.createNewUser();
+        fileUserService.createNewUserMenu();
 
         //then
         verify(ioUtils).writeMessage(eq("Input your email"));
         verify(ioUtils).writeMessage(eq("Input your name"));
         verify(ioUtils).writeMessage(eq("Input your password"));
-        try {
-            verify(ioUtils).saveUser(new User(
-                    "userName",
-                    "userEmail",
-                    "userPassword"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        verify(ioUtils).saveUser(new User(
+                "userName",
+                "userEmail",
+                "userPassword", 2));
         verify(ioUtils).writeMessage(eq("User successfully created.\n Please login."));
     }
 
